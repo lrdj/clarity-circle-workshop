@@ -1,0 +1,100 @@
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	{%- seo -%}
+
+	{%- feed_meta -%}
+	{%- if jekyll.environment == 'production' and site.google_analytics -%}
+	{%- include google-analytics.html -%}
+	{%- endif -%}
+	
+	<link rel="stylesheet" href="{{ site.baseurl }}/assets/govuk/govuk-frontend.min.css">
+
+	<style>
+
+		/*
+
+  --govuk-frontend-breakpoint-mobile: 20rem;
+  --govuk-frontend-breakpoint-tablet: 40.0625rem;
+  --govuk-frontend-breakpoint-desktop: 48.0625rem;
+
+		*/
+
+
+	  @font-face {
+	    font-family: "GDS Transport";
+	    src: url("{{ site.baseurl }}/assets/govuk/assets/fonts/light-94a07e06a1-v2.woff2") format("woff2"),
+	         url("{{ site.baseurl }}/assets/govuk/assets/fonts/light-f591b13f7d-v2.woff") format("woff");
+	    font-weight: 300;
+	    font-style: normal;
+	  }
+	  @font-face {
+	    font-family: "GDS Transport";
+	    src: url("{{ site.baseurl }}/assets/govuk/assets/fonts/bold-b542beb274-v2.woff2") format("woff2"),
+	         url("{{ site.baseurl }}/assets/govuk/assets/fonts/bold-affa96571d-v2.woff") format("woff");
+	    font-weight: 700;
+	    font-style: normal;
+	  }
+
+
+		/* Override GOV.UK primary button (green) */
+		.govuk-button {
+		    background-color: #4CAF50; /* Standard green */
+		    color: #ffffff; /* White text */
+		    border: 1px solid #4CAF50;
+		    border-radius: 9px; /* Rounded corners */
+		    padding: 0.75em 1.25em;
+		    transition: background-color 0.2s ease-in-out;
+		    box-shadow: none;
+		}
+
+		.govuk-button:hover {
+		    background-color: #388E3C; /* Darker green on hover */
+		}
+
+		.govuk-button:focus {
+		    outline: 3px solid #ffdd00; /* Slightly toned-down yellow */
+		    box-shadow: 0 0 0 4px rgba(255, 221, 0, 0.5); /* Softer focus ring */
+		}
+
+		/* Override GOV.UK secondary button (white outline) */
+		.govuk-button--secondary {
+		    background-color: #ffffff; /* White background */
+		    color: #000000; /* Black text */
+		    border: 1px solid #ccc;
+		    border-radius: 9px; /* Rounded corners */
+		    padding: 0.75em 1.25em;
+		    transition: background-color 0.2s ease-in-out;
+		}
+
+		.govuk-button--secondary:hover {
+		    background-color: #e0e0e0; /* Light gray on hover */
+		}
+
+		/* Scoped to only apply flexbox centering to the hero section */
+		.cl-hero {
+		    display: flex;
+		    align-items: center; /* Vertically centers both columns */
+		}
+
+		/* Ensure the left column's content is vertically centered */
+		.cl-hero .govuk-grid-column-one-half {
+		    display: flex;
+		    flex-direction: column;
+		    justify-content: center; /* Centers content inside */
+		    align-items: flex-start; /* Keeps text aligned left */
+		}
+
+		/* Keep buttons in a row */
+		.cl-button-cluster {
+		    display: flex;
+		    gap: 10px; /* Adds spacing between buttons */
+		}
+
+
+	</style>
+
+	
+</head>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en" }}">
+
+  {%- include head.html -%}
+
+  <body class="govuk-template__body govuk-frontend-supported">
+
+  <main class="govuk-main-wrapper govuk-main-wrapper--l">
+	{{ content }}
+  </main>
+
+    {%- include footer.html -%}
+
+	<!-- call frontend -->
+    {% include govuk-scripts.html %}
+
+  </body>
+
+</html>

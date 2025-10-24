@@ -1,0 +1,25 @@
+<!--
+<script src="{{ site.baseurl }}/assets/govuk/govuk-frontend.bundle.js"></script>
+<script>window.GOVUKFrontend.initAll();</script>
+-->
+
+
+<!--
+<script type="module" src="{{ site.baseurl }}/assets/govuk/govuk-frontend.min.js"></script>
+<script type="module">
+  import { initAll } from '{{ site.baseurl }}/assets/govuk/govuk-frontend.min.js';
+  initAll();
+</script>
+-->
+
+
+<script type="module" src="{{ site.baseurl }}/assets/govuk-prototype-kit/init.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (window.GOVUKFrontend) {
+      window.GOVUKFrontend.initAll();
+    } else {
+      console.error("GOV.UK Frontend did not load correctly.");
+    }
+  });
+</script>

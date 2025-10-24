@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include head.html %}
+</head>
+
+<!-- body class="govuk-template__body govuk-!-background-white" -->
+
+<body class="govuk-template__body govuk-frontend-supported">
+
+  {% include above-main.html %}
+  
+  <div class="govuk-width-container">
+
+    {{ content }}
+
+  </div> <!--- class="govuk-width-container" -->
+
+  <!-- call frontend -->
+  {% include govuk-scripts.html %}
+
+</body>
+</html>
+
+
+
+
