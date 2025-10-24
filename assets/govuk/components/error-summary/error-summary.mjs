@@ -1,5 +1,5 @@
 import { ConfigurableComponent } from '../../common/configuration.mjs';
-import { setFocus, getFragmentFromUrl } from '../../common/index.mjs';
+import { setFocus } from '../../common/index.mjs';
 
 /**
  * Error summary component
@@ -32,7 +32,7 @@ class ErrorSummary extends ConfigurableComponent {
     if (!($target instanceof HTMLAnchorElement)) {
       return false;
     }
-    const inputId = getFragmentFromUrl($target.href);
+    const inputId = $target.hash.replace('#', '');
     if (!inputId) {
       return false;
     }
@@ -83,7 +83,7 @@ class ErrorSummary extends ConfigurableComponent {
  */
 
 /**
- * @typedef {import('../../common/configuration.mjs').Schema} Schema
+ * @import { Schema } from '../../common/configuration.mjs'
  */
 ErrorSummary.moduleName = 'govuk-error-summary';
 ErrorSummary.defaults = Object.freeze({

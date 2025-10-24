@@ -69,7 +69,7 @@
   class ElementError extends GOVUKFrontendError {
     constructor(messageOrOptions) {
       let message = typeof messageOrOptions === 'string' ? messageOrOptions : '';
-      if (typeof messageOrOptions === 'object') {
+      if (isObject(messageOrOptions)) {
         const {
           component,
           identifier,
@@ -78,7 +78,9 @@
         } = messageOrOptions;
         message = identifier;
         message += element ? ` is not of type ${expectedType != null ? expectedType : 'HTMLElement'}` : ' not found';
-        message = formatErrorMessage(component, message);
+        if (component) {
+          message = formatErrorMessage(component, message);
+        }
       }
       super(message);
       this.name = 'ElementError';
@@ -92,10 +94,10 @@
     }
   }
   /**
-   * @typedef {import('../common/index.mjs').ComponentWithModuleName} ComponentWithModuleName
+   * @import { ComponentWithModuleName } from '../common/index.mjs'
    */
 
-  class GOVUKFrontendComponent {
+  class Component {
     /**
      * Returns the root element of the component
      *
@@ -146,12 +148,12 @@
    */
 
   /**
-   * @typedef {typeof GOVUKFrontendComponent & ChildClass} ChildClassConstructor
+   * @typedef {typeof Component & ChildClass} ChildClassConstructor
    */
-  GOVUKFrontendComponent.elementType = HTMLElement;
+  Component.elementType = HTMLElement;
 
   const configOverride = Symbol.for('configOverride');
-  class ConfigurableComponent extends GOVUKFrontendComponent {
+  class ConfigurableComponent extends Component {
     [configOverride](param) {
       return {};
     }
@@ -169,7 +171,7 @@
       super($root);
       this._config = void 0;
       const childConstructor = this.constructor;
-      if (typeof childConstructor.defaults === 'undefined') {
+      if (!isObject(childConstructor.defaults)) {
         throw new ConfigError(formatErrorMessage(childConstructor, 'Config passed as parameter into constructor but no defaults defined'));
       }
       const datasetConfig = normaliseDataset(childConstructor, this._$root.dataset);
@@ -201,16 +203,19 @@
     return output;
   }
   function normaliseDataset(Component, dataset) {
-    if (typeof Component.schema === 'undefined') {
+    if (!isObject(Component.schema)) {
       throw new ConfigError(formatErrorMessage(Component, 'Config passed as parameter into constructor but no schema defined'));
     }
     const out = {};
-    for (const [field, property] of Object.entries(Component.schema.properties)) {
+    const entries = Object.entries(Component.schema.properties);
+    for (const entry of entries) {
+      const [namespace, property] = entry;
+      const field = namespace.toString();
       if (field in dataset) {
         out[field] = normaliseString(dataset[field], property);
       }
       if ((property == null ? void 0 : property.type) === 'object') {
-        out[field] = extractConfigByNamespace(Component.schema, dataset, field);
+        out[field] = extractConfigByNamespace(Component.schema, dataset, namespace);
       }
     }
     return out;
@@ -236,13 +241,13 @@
       return;
     }
     const newObject = {
-      [namespace]: ({})
+      [namespace]: {}
     };
     for (const [key, value] of Object.entries(dataset)) {
       let current = newObject;
       const keyParts = key.split('.');
       for (const [index, name] of keyParts.entries()) {
-        if (typeof current === 'object') {
+        if (isObject(current)) {
           if (index < keyParts.length - 1) {
             if (!isObject(current[name])) {
               current[name] = {};
@@ -259,9 +264,10 @@
   /**
    * Schema for component config
    *
+   * @template {Partial<Record<keyof ConfigurationType, unknown>>} ConfigurationType
    * @typedef {object} Schema
-   * @property {{ [field: string]: SchemaProperty | undefined }} properties - Schema properties
-   * @property {SchemaCondition[]} [anyOf] - List of schema conditions
+   * @property {Record<keyof ConfigurationType, SchemaProperty | undefined>} properties - Schema properties
+   * @property {SchemaCondition<ConfigurationType>[]} [anyOf] - List of schema conditions
    */
   /**
    * Schema property for component config
@@ -272,20 +278,24 @@
   /**
    * Schema condition for component config
    *
+   * @template {Partial<Record<keyof ConfigurationType, unknown>>} ConfigurationType
    * @typedef {object} SchemaCondition
-   * @property {string[]} required - List of required config fields
+   * @property {(keyof ConfigurationType)[]} required - List of required config fields
    * @property {string} errorMessage - Error message when required config fields not provided
    */
   /**
-   * @template {ObjectNested} [ConfigurationType={}]
+   * @template {Partial<Record<keyof ConfigurationType, unknown>>} [ConfigurationType=ObjectNested]
    * @typedef ChildClass
    * @property {string} moduleName - The module name that'll be looked for in the DOM when initialising the component
-   * @property {Schema} [schema] - The schema of the component configuration
+   * @property {Schema<ConfigurationType>} [schema] - The schema of the component configuration
    * @property {ConfigurationType} [defaults] - The default values of the configuration of the component
    */
   /**
-   * @template {ObjectNested} [ConfigurationType={}]
-   * @typedef {typeof GOVUKFrontendComponent & ChildClass<ConfigurationType>} ChildClassConstructor<ConfigurationType>
+   * @template {Partial<Record<keyof ConfigurationType, unknown>>} [ConfigurationType=ObjectNested]
+   * @typedef {typeof Component & ChildClass<ConfigurationType>} ChildClassConstructor<ConfigurationType>
+   */
+  /**
+   * @import { CompatibleClass, Config, CreateAllOptions, OnErrorCallback } from '../init.mjs'
    */
 
   class I18n {
@@ -301,7 +311,7 @@
         throw new Error('i18n: lookup key missing');
       }
       let translation = this.translations[lookupKey];
-      if (typeof (options == null ? void 0 : options.count) === 'number' && typeof translation === 'object') {
+      if (typeof (options == null ? void 0 : options.count) === 'number' && isObject(translation)) {
         const translationPluralForm = translation[this.getPluralSuffix(lookupKey, options.count)];
         if (translationPluralForm) {
           translation = translationPluralForm;
@@ -343,8 +353,8 @@
         return 'other';
       }
       const translation = this.translations[lookupKey];
-      const preferredForm = this.hasIntlPluralRulesSupport() ? new Intl.PluralRules(this.locale).select(count) : this.selectPluralFormUsingFallbackRules(count);
-      if (typeof translation === 'object') {
+      const preferredForm = this.hasIntlPluralRulesSupport() ? new Intl.PluralRules(this.locale).select(count) : 'other';
+      if (isObject(translation)) {
         if (preferredForm in translation) {
           return preferredForm;
         } else if ('other' in translation) {
@@ -354,132 +364,7 @@
       }
       throw new Error(`i18n: Plural form ".other" is required for "${this.locale}" locale`);
     }
-    selectPluralFormUsingFallbackRules(count) {
-      count = Math.abs(Math.floor(count));
-      const ruleset = this.getPluralRulesForLocale();
-      if (ruleset) {
-        return I18n.pluralRules[ruleset](count);
-      }
-      return 'other';
-    }
-    getPluralRulesForLocale() {
-      const localeShort = this.locale.split('-')[0];
-      for (const pluralRule in I18n.pluralRulesMap) {
-        const languages = I18n.pluralRulesMap[pluralRule];
-        if (languages.includes(this.locale) || languages.includes(localeShort)) {
-          return pluralRule;
-        }
-      }
-    }
   }
-  I18n.pluralRulesMap = {
-    arabic: ['ar'],
-    chinese: ['my', 'zh', 'id', 'ja', 'jv', 'ko', 'ms', 'th', 'vi'],
-    french: ['hy', 'bn', 'fr', 'gu', 'hi', 'fa', 'pa', 'zu'],
-    german: ['af', 'sq', 'az', 'eu', 'bg', 'ca', 'da', 'nl', 'en', 'et', 'fi', 'ka', 'de', 'el', 'hu', 'lb', 'no', 'so', 'sw', 'sv', 'ta', 'te', 'tr', 'ur'],
-    irish: ['ga'],
-    russian: ['ru', 'uk'],
-    scottish: ['gd'],
-    spanish: ['pt-PT', 'it', 'es'],
-    welsh: ['cy']
-  };
-  I18n.pluralRules = {
-    arabic(n) {
-      if (n === 0) {
-        return 'zero';
-      }
-      if (n === 1) {
-        return 'one';
-      }
-      if (n === 2) {
-        return 'two';
-      }
-      if (n % 100 >= 3 && n % 100 <= 10) {
-        return 'few';
-      }
-      if (n % 100 >= 11 && n % 100 <= 99) {
-        return 'many';
-      }
-      return 'other';
-    },
-    chinese() {
-      return 'other';
-    },
-    french(n) {
-      return n === 0 || n === 1 ? 'one' : 'other';
-    },
-    german(n) {
-      return n === 1 ? 'one' : 'other';
-    },
-    irish(n) {
-      if (n === 1) {
-        return 'one';
-      }
-      if (n === 2) {
-        return 'two';
-      }
-      if (n >= 3 && n <= 6) {
-        return 'few';
-      }
-      if (n >= 7 && n <= 10) {
-        return 'many';
-      }
-      return 'other';
-    },
-    russian(n) {
-      const lastTwo = n % 100;
-      const last = lastTwo % 10;
-      if (last === 1 && lastTwo !== 11) {
-        return 'one';
-      }
-      if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) {
-        return 'few';
-      }
-      if (last === 0 || last >= 5 && last <= 9 || lastTwo >= 11 && lastTwo <= 14) {
-        return 'many';
-      }
-      return 'other';
-    },
-    scottish(n) {
-      if (n === 1 || n === 11) {
-        return 'one';
-      }
-      if (n === 2 || n === 12) {
-        return 'two';
-      }
-      if (n >= 3 && n <= 10 || n >= 13 && n <= 19) {
-        return 'few';
-      }
-      return 'other';
-    },
-    spanish(n) {
-      if (n === 1) {
-        return 'one';
-      }
-      if (n % 1000000 === 0 && n !== 0) {
-        return 'many';
-      }
-      return 'other';
-    },
-    welsh(n) {
-      if (n === 0) {
-        return 'zero';
-      }
-      if (n === 1) {
-        return 'one';
-      }
-      if (n === 2) {
-        return 'two';
-      }
-      if (n === 3) {
-        return 'few';
-      }
-      if (n === 6) {
-        return 'many';
-      }
-      return 'other';
-    }
-  };
 
   /**
    * Password input component
@@ -603,8 +488,7 @@
    */
 
   /**
-   * @typedef {import('../../common/configuration.mjs').Schema} Schema
-   * @typedef {import('../../i18n.mjs').TranslationPluralForms} TranslationPluralForms
+   * @import { Schema } from '../../common/configuration.mjs'
    */
   PasswordInput.moduleName = 'govuk-password-input';
   PasswordInput.defaults = Object.freeze({

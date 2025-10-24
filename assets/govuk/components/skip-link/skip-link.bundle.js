@@ -4,12 +4,6 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GOVUKFrontend = global.GOVUKFrontend || {}));
 })(this, (function (exports) { 'use strict';
 
-  function getFragmentFromUrl(url) {
-    if (!url.includes('#')) {
-      return undefined;
-    }
-    return url.split('#').pop();
-  }
   function setFocus($element, options = {}) {
     var _options$onBeforeFocu;
     const isFocusable = $element.getAttribute('tabindex');
@@ -53,6 +47,12 @@
     }
     return $scope.classList.contains('govuk-frontend-supported');
   }
+  function isArray(option) {
+    return Array.isArray(option);
+  }
+  function isObject(option) {
+    return !!option && typeof option === 'object' && !isArray(option);
+  }
   function formatErrorMessage(Component, message) {
     return `${Component.moduleName}: ${message}`;
   }
@@ -82,7 +82,7 @@
   class ElementError extends GOVUKFrontendError {
     constructor(messageOrOptions) {
       let message = typeof messageOrOptions === 'string' ? messageOrOptions : '';
-      if (typeof messageOrOptions === 'object') {
+      if (isObject(messageOrOptions)) {
         const {
           component,
           identifier,
@@ -91,7 +91,9 @@
         } = messageOrOptions;
         message = identifier;
         message += element ? ` is not of type ${expectedType != null ? expectedType : 'HTMLElement'}` : ' not found';
-        message = formatErrorMessage(component, message);
+        if (component) {
+          message = formatErrorMessage(component, message);
+        }
       }
       super(message);
       this.name = 'ElementError';
@@ -105,10 +107,10 @@
     }
   }
   /**
-   * @typedef {import('../common/index.mjs').ComponentWithModuleName} ComponentWithModuleName
+   * @import { ComponentWithModuleName } from '../common/index.mjs'
    */
 
-  class GOVUKFrontendComponent {
+  class Component {
     /**
      * Returns the root element of the component
      *
@@ -159,17 +161,17 @@
    */
 
   /**
-   * @typedef {typeof GOVUKFrontendComponent & ChildClass} ChildClassConstructor
+   * @typedef {typeof Component & ChildClass} ChildClassConstructor
    */
-  GOVUKFrontendComponent.elementType = HTMLElement;
+  Component.elementType = HTMLElement;
 
   /**
    * Skip link component
    *
    * @preserve
-   * @augments GOVUKFrontendComponent<HTMLAnchorElement>
+   * @augments Component<HTMLAnchorElement>
    */
-  class SkipLink extends GOVUKFrontendComponent {
+  class SkipLink extends Component {
     /**
      * @param {Element | null} $root - HTML element to use for skip link
      * @throws {ElementError} when $root is not set or the wrong type
@@ -181,16 +183,10 @@
       super($root);
       const hash = this.$root.hash;
       const href = (_this$$root$getAttrib = this.$root.getAttribute('href')) != null ? _this$$root$getAttrib : '';
-      let url;
-      try {
-        url = new window.URL(this.$root.href);
-      } catch (error) {
-        throw new ElementError(`Skip link: Target link (\`href="${href}"\`) is invalid`);
-      }
-      if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) {
+      if (this.$root.origin !== window.location.origin || this.$root.pathname !== window.location.pathname) {
         return;
       }
-      const linkedElementId = getFragmentFromUrl(hash);
+      const linkedElementId = hash.replace('#', '');
       if (!linkedElementId) {
         throw new ElementError(`Skip link: Target link (\`href="${href}"\`) has no hash fragment`);
       }

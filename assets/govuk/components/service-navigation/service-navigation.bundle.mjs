@@ -1,5 +1,5 @@
 function getBreakpoint(name) {
-  const property = `--govuk-frontend-breakpoint-${name}`;
+  const property = `--govuk-breakpoint-${name}`;
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(property);
   return {
     property,
@@ -24,6 +24,12 @@ function isSupported($scope = document.body) {
     return false;
   }
   return $scope.classList.contains('govuk-frontend-supported');
+}
+function isArray(option) {
+  return Array.isArray(option);
+}
+function isObject(option) {
+  return !!option && typeof option === 'object' && !isArray(option);
 }
 function formatErrorMessage(Component, message) {
   return `${Component.moduleName}: ${message}`;
@@ -54,7 +60,7 @@ class SupportError extends GOVUKFrontendError {
 class ElementError extends GOVUKFrontendError {
   constructor(messageOrOptions) {
     let message = typeof messageOrOptions === 'string' ? messageOrOptions : '';
-    if (typeof messageOrOptions === 'object') {
+    if (isObject(messageOrOptions)) {
       const {
         component,
         identifier,
@@ -63,7 +69,9 @@ class ElementError extends GOVUKFrontendError {
       } = messageOrOptions;
       message = identifier;
       message += element ? ` is not of type ${expectedType != null ? expectedType : 'HTMLElement'}` : ' not found';
-      message = formatErrorMessage(component, message);
+      if (component) {
+        message = formatErrorMessage(component, message);
+      }
     }
     super(message);
     this.name = 'ElementError';
@@ -77,10 +85,10 @@ class InitError extends GOVUKFrontendError {
   }
 }
 /**
- * @typedef {import('../common/index.mjs').ComponentWithModuleName} ComponentWithModuleName
+ * @import { ComponentWithModuleName } from '../common/index.mjs'
  */
 
-class GOVUKFrontendComponent {
+class Component {
   /**
    * Returns the root element of the component
    *
@@ -131,16 +139,16 @@ class GOVUKFrontendComponent {
  */
 
 /**
- * @typedef {typeof GOVUKFrontendComponent & ChildClass} ChildClassConstructor
+ * @typedef {typeof Component & ChildClass} ChildClassConstructor
  */
-GOVUKFrontendComponent.elementType = HTMLElement;
+Component.elementType = HTMLElement;
 
 /**
  * Service Navigation component
  *
  * @preserve
  */
-class ServiceNavigation extends GOVUKFrontendComponent {
+class ServiceNavigation extends Component {
   /**
    * @param {Element | null} $root - HTML element to use for header
    */

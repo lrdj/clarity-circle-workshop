@@ -4,14 +4,8 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GOVUKFrontend = global.GOVUKFrontend || {}));
 })(this, (function (exports) { 'use strict';
 
-  function getFragmentFromUrl(url) {
-    if (!url.includes('#')) {
-      return undefined;
-    }
-    return url.split('#').pop();
-  }
   function getBreakpoint(name) {
-    const property = `--govuk-frontend-breakpoint-${name}`;
+    const property = `--govuk-breakpoint-${name}`;
     const value = window.getComputedStyle(document.documentElement).getPropertyValue(property);
     return {
       property,
@@ -36,6 +30,12 @@
       return false;
     }
     return $scope.classList.contains('govuk-frontend-supported');
+  }
+  function isArray(option) {
+    return Array.isArray(option);
+  }
+  function isObject(option) {
+    return !!option && typeof option === 'object' && !isArray(option);
   }
   function formatErrorMessage(Component, message) {
     return `${Component.moduleName}: ${message}`;
@@ -66,7 +66,7 @@
   class ElementError extends GOVUKFrontendError {
     constructor(messageOrOptions) {
       let message = typeof messageOrOptions === 'string' ? messageOrOptions : '';
-      if (typeof messageOrOptions === 'object') {
+      if (isObject(messageOrOptions)) {
         const {
           component,
           identifier,
@@ -75,7 +75,9 @@
         } = messageOrOptions;
         message = identifier;
         message += element ? ` is not of type ${expectedType != null ? expectedType : 'HTMLElement'}` : ' not found';
-        message = formatErrorMessage(component, message);
+        if (component) {
+          message = formatErrorMessage(component, message);
+        }
       }
       super(message);
       this.name = 'ElementError';
@@ -89,10 +91,10 @@
     }
   }
   /**
-   * @typedef {import('../common/index.mjs').ComponentWithModuleName} ComponentWithModuleName
+   * @import { ComponentWithModuleName } from '../common/index.mjs'
    */
 
-  class GOVUKFrontendComponent {
+  class Component {
     /**
      * Returns the root element of the component
      *
@@ -143,16 +145,16 @@
    */
 
   /**
-   * @typedef {typeof GOVUKFrontendComponent & ChildClass} ChildClassConstructor
+   * @typedef {typeof Component & ChildClass} ChildClassConstructor
    */
-  GOVUKFrontendComponent.elementType = HTMLElement;
+  Component.elementType = HTMLElement;
 
   /**
    * Tabs component
    *
    * @preserve
    */
-  class Tabs extends GOVUKFrontendComponent {
+  class Tabs extends Component {
     /**
      * @param {Element | null} $root - HTML element to use for tabs
      */
@@ -278,7 +280,7 @@
       return this.$root.querySelector(`a.govuk-tabs__tab[href="${hash}"]`);
     }
     setAttributes($tab) {
-      const panelId = getFragmentFromUrl($tab.href);
+      const panelId = $tab.hash.replace('#', '');
       if (!panelId) {
         return;
       }
@@ -382,7 +384,7 @@
       this.createHistoryEntry($previousTab);
     }
     getPanel($tab) {
-      const panelId = getFragmentFromUrl($tab.href);
+      const panelId = $tab.hash.replace('#', '');
       if (!panelId) {
         return null;
       }
