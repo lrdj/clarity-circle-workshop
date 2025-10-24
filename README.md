@@ -123,6 +123,21 @@ Notes:
 - After updating, run the site locally, visit `/circle/gov/`, and click through components to sanity‑check `initAll()`.
 
 
+## Asset path fix (fonts under baseurl)
+
+GOV.UK Frontend’s compiled CSS uses absolute font URLs like `/assets/fonts/...`. When the site is hosted under a subpath (for example `/circle` on GitHub Pages), those absolute URLs point to the domain root and 404.
+
+This repo ships a tiny Jekyll‑processed wrapper that rewrites those URLs at build time:
+
+- File: `assets/govuk/govuk-frontend.fixed.css`
+- Mechanism: Liquid reads `govuk-frontend.min.css` and replaces `/assets/fonts/` with `{{ site.baseurl }}/assets/govuk/assets/fonts/`
+- Usage: `_includes/head.html` links to the fixed CSS instead of the raw CSS
+
+Result: Fonts resolve correctly under any `baseurl` without introducing a Node build.
+
+Future updates: No extra work required. When you refresh `assets/govuk/` to a newer version, the wrapper continues to apply the same replacement. If the upstream font path pattern ever changes, adjust the one `replace` rule in `govuk-frontend.fixed.css`.
+
+
 ## Customising Styles
 
 Right now, small overrides live inline in `_includes/head.html`. You can move them into `assets/main.scss` if you prefer:
@@ -145,3 +160,7 @@ Jekyll’s `_config.yml` already sets Sass `load_paths: [assets/govuk]`, which i
 
 See `LICENSE.txt`.
 
+
+## Release Notes
+
+- 2025-02: Updated GOV.UK Frontend to `v5.13.0`; added `assets/govuk/VERSION.txt` marker. Introduced `assets/govuk/govuk-frontend.fixed.css` to rewrite absolute font paths for `baseurl` hosting. Added `/demos/` page that previews component templates with `initAll({ scope })`. Moved inline styles into `assets/main.scss`. Added index page and header Home link.
