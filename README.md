@@ -122,6 +122,27 @@ Notes:
 - If you switch how JS is loaded, also update `_includes/govuk-scripts.html` accordingly.
 - After updating, run the site locally, visit `/circle/gov/`, and click through components to sanity‑check `initAll()`.
 
+### Update Checklist (quick)
+
+1) Refresh assets
+- Option A: `npm i govuk-frontend@<version>` in a temp folder, then copy `node_modules/govuk-frontend/dist/govuk/*` → `assets/govuk/`
+- Option B: Download the release archive and copy `dist/govuk/` → `assets/govuk/`
+
+2) Record the version
+- Update or create `assets/govuk/VERSION.txt` (e.g., `5.13.0`).
+
+3) Verify CSS/JS load
+- CSS: `_includes/head.html` should link `assets/govuk/govuk-frontend.fixed.css` (Liquid wrapper rewrites font paths for `baseurl`).
+- JS: `assets/govuk-prototype-kit/init.js` imports `govuk-frontend.min.js` and calls `initAll()`.
+
+4) Run and sanity-check
+- `bundle exec jekyll serve`
+- Visit `/circle/gov/` and `/circle/demos/` and test interactions.
+- Confirm fonts load (no 404s): URLs should start with `/circle/assets/govuk/assets/fonts/`.
+
+5) Commit and deploy
+- Push to `main` so GitHub Pages rebuilds.
+
 
 ## Asset path fix (fonts under baseurl)
 
