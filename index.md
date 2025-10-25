@@ -10,5 +10,6 @@ permalink: /
   <li><a class="govuk-link" href="{{ "/gov/" | relative_url }}">GOV.UK component test page</a></li>
   <li><a class="govuk-link" href="{{ "/demos/" | relative_url }}">GOV.UK component demos</a></li>
   <li><a class="govuk-link" href="{{ "/land_a.html" | relative_url }}">Landing page test A</a></li>
-  <li><a class="govuk-link" href="{{ "/probs.html" | relative_url }}">Landing page (duplicate prototype)</a></li>
+  <li><a class="govuk-link" href="{{ "/probs.html" | relative_url }}">Problem space workshop form</a></li>
+  <li><a class="govuk-link" href="{{ "/circle-of-control/" | relative_url }}">Circle of control app</a></li>
 </ul>
