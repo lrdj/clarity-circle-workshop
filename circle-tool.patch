@@ -1,0 +1,263 @@
+diff --git a/tools/circle.md b/tools/circle.md
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/tools/circle.md
+@@ -0,0 +1,10 @@
++---
++title: Circle of control
++layout: unbranded
++permalink: /tools/circle/
++---
++
++<div class="govuk-grid-row" id="coc-app" data-app></div>
++
++<link rel="stylesheet" href="{{ site.baseurl }}/assets/css/circle-tools.css">
++<script type="module" src="{{ site.baseurl }}/assets/js/circle-tool.js"></script>
+
+diff --git a/assets/css/circle-tools.css b/assets/css/circle-tools.css
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/assets/css/circle-tools.css
+@@ -0,0 +1,14 @@
++
++/* Circle tool styles - GOV.UK neutral */
++.coc-container { max-width: 980px; margin: 0 auto; }
++.coc-card { background: #fff; padding: 24px; border: 1px solid #b1b4b6; margin-bottom: 16px; }
++.coc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
++.coc-circle-wrap { display: grid; place-items: center; background: #f3f2f1; padding: 12px; }
++.coc-svg { width: 100%; max-width: 560px; height: auto; }
++.coc-chip { font-size: 14px; }
++
++@media print {
++  .govuk-breadcrumbs, .govuk-header, .govuk-footer, .coc-no-print { display: none !important; }
++  .coc-container { max-width: none; }
++  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
++}
+
+diff --git a/assets/js/circle-tool.js b/assets/js/circle-tool.js
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/assets/js/circle-tool.js
+@@ -0,0 +1,219 @@
++
++const appEl = document.querySelector('[data-app]');
++
++if (appEl) {
++  const state = { issues: [], causes: {}, agency: {}, step: 1 };
++  const uid = () => Math.random().toString(36).slice(2, 9);
++  const h = (tag, attrs = {}, children = []) => {
++    const el = document.createElement(tag);
++    Object.entries(attrs).forEach(([k, v]) => {
++      if (k === 'class') el.className = v;
++      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
++      else el.setAttribute(k, v);
++    });
++    (Array.isArray(children) ? children : [children]).forEach(c => {
++      if (c == null) return;
++      el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
++    });
++    return el;
++  };
++
++  function render() {
++    appEl.innerHTML = '';
++    const container = h('div', { class: 'coc-container' });
++    container.appendChild(h('h1', { class: 'govuk-heading-l' }, 'Circle of control'));
++    if (state.step === 1) container.appendChild(step1());
++    if (state.step === 2) container.appendChild(step2());
++    if (state.step === 3) container.appendChild(step3());
++    if (state.step === 4) container.appendChild(step4());
++    appEl.appendChild(container);
++  }
++
++  function step1() {
++    const card = h('div', { class: 'coc-card' }, [
++      h('h2', { class: 'govuk-heading-m' }, '1) What’s not working? (one per line)'),
++      h('p', { class: 'govuk-body' }, 'Say it aloud, you type. Keep one idea per line.'),
++    ]);
++    const ta = h('textarea', { class: 'govuk-textarea', rows: '6', id: 'issues' });
++    ta.value = state.issues.map(i => i.text).join('\n');
++    card.appendChild(ta);
++    card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
++      h('button', {
++        class: 'govuk-button',
++        onClick: () => {
++          const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
++          state.issues = lines.map(text => ({ id: uid(), text }));
++          state.issues.forEach(i => { if (!state.causes[i.id]) state.causes[i.id] = []; });
++          state.step = 2; render();
++        }
++      }, 'Continue')
++    ]));
++    return card;
++  }
++
++  function step2() {
++    const card = h('div', { class: 'coc-card' }, [
++      h('h2', { class: 'govuk-heading-m' }, '2) Why is that happening?'),
++      h('p', { class: 'govuk-body' }, 'Add possible causes. Use “Add deeper cause” to ask “why” again.'),
++    ]);
++    state.issues.forEach(issue => {
++      card.appendChild(h('h3', { class: 'govuk-heading-s' }, `Issue: ${issue.text}`));
++      const input = h('input', { class: 'govuk-input', placeholder: 'Because…' });
++      const addBtn = h('button', { class: 'govuk-button govuk-button--secondary coc-no-print', onClick: () => {
++        const text = input.value.trim(); if (!text) return;
++        state.causes[issue.id].push({ id: uid(), text, parentId: null });
++        input.value = ''; render();
++      }}, 'Add cause');
++      card.appendChild(h('div', { class: 'coc-actions' }, [input, addBtn]));
++      const ul = h('ul', { class: 'govuk-list govuk-list--bullet' });
++      (state.causes[issue.id] || []).filter(n => !n.parentId).forEach(node => ul.appendChild(renderNode(issue.id, node)));
++      card.appendChild(ul);
++    });
++    card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
++      h('button', { class: 'govuk-button', onClick: () => { state.step = 3; render(); } }, 'Continue to agency')
++    ]));
++    return card;
++  }
++
++  function renderNode(issueId, node) {
++    const li = h('li', {}, [
++      h('span', {}, node.text),
++      h('div', { class: 'coc-actions coc-no-print' }, [
++        h('input', { class: 'govuk-input', placeholder: 'Deeper cause…', id: `deep-${node.id}` }),
++        h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => {
++          const input = document.getElementById(`deep-${node.id}`);
++          const text = input.value.trim(); if (!text) return;
++          state.causes[issueId].push({ id: uid(), text, parentId: node.id });
++          input.value=''; render();
++        }}, 'Add deeper cause')
++      ])
++    ]);
++    (state.causes[issueId] || []).filter(n => n.parentId === node.id).forEach(child => {
++      const sub = h('ul', { class: 'govuk-list govuk-list--bullet', style: 'margin-top:8px;' });
++      sub.appendChild(renderNode(issueId, child));
++      li.appendChild(sub);
++    });
++    return li;
++  }
++
++  function step3() {
++    const card = h('div', { class: 'coc-card' });
++    card.appendChild(h('h2', { class: 'govuk-heading-m' }, '3) Map control, influence, or outside'));
++    const nodes = [
++      ...state.issues.map(i => ({ id: i.id, text: i.text })),
++      ...Object.values(state.causes).flatMap(arr => arr.map(n => ({ id: n.id, text: n.text })))
++    ];
++    nodes.forEach(n => {
++      const fs = h('fieldset', { class: 'govuk-fieldset', style: 'margin-bottom:8px;' }, [
++        h('legend', { class: 'govuk-fieldset__legend govuk-fieldset__legend--s' }, n.text),
++        radio(n.id, 'control', 'I control this'),
++        radio(n.id, 'influence', 'I can influence this'),
++        radio(n.id, 'none', 'Outside my control'),
++      ]);
++      card.appendChild(fs);
++    });
++    card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
++      h('button', { class: 'govuk-button', onClick: () => { state.step = 4; render(); } }, 'Review & export')
++    ]));
++    return card;
++  }
++
++  function radio(nodeId, value, label) {
++    const name = `agency-${nodeId}`;
++    const input = h('input', {
++      class: 'govuk-radios__input', type: 'radio', name, id: `${name}-${value}`,
++      checked: (state.agency[nodeId] || '') === value ? true : null,
++      onChange: () => { state.agency[nodeId] = value; }
++    });
++    const lbl = h('label', { class: 'govuk-label govuk-radios__label', for: `${name}-${value}` }, label);
++    return h('div', { class: 'govuk-radios govuk-radios--small' }, [
++      h('div', { class: 'govuk-radios__item' }, [input, lbl])
++    ]);
++  }
++
++  function step4() {
++    const wrap = h('div');
++    wrap.appendChild(h('div', { class: 'coc-card' }, [
++      h('h2', { class: 'govuk-heading-m' }, '4) Summary & export'),
++      h('p', { class: 'govuk-body' }, 'Check items are in the right circle, then export to PDF.'),
++    ]));
++    wrap.appendChild(h('div', { class: 'coc-card coc-circle-wrap' }, [
++      h('h3', { class: 'govuk-heading-s' }, 'Circle of control'),
++      renderSVG()
++    ]));
++    wrap.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
++      h('button', { class: 'govuk-button', onClick: () => window.print() }, 'Export to PDF'),
++      h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => { state.step = 3; render(); } }, 'Back')
++    ]));
++    return wrap;
++  }
++
++  function renderSVG() {
++    const entries = Object.entries(state.agency);
++    const getText = (id) => {
++      const issue = state.issues.find(i => i.id === id);
++      if (issue) return issue.text;
++      for (const arr of Object.values(state.causes)) {
++        const node = arr.find(n => n.id === id);
++        if (node) return node.text;
++      }
++      return '';
++    };
++    const control = entries.filter(([,v]) => v==='control').map(([id]) => getText(id));
++    const influence = entries.filter(([,v]) => v==='influence').map(([id]) => getText(id));
++    const none = entries.filter(([,v]) => v==='none').map(([id]) => getText(id));
++
++    const svg = h('svg', { class: 'coc-svg', viewBox: '0 0 700 700', xmlns: 'http://www.w3.org/2000/svg' });
++    const circle = (cx,cy,r,fill,stroke) => {
++      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
++      c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r);
++      c.setAttribute('fill',fill); c.setAttribute('stroke',stroke); return c;
++    };
++    const textAt = (x,y,txt,anchor='start',weight='normal') => {
++      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
++      t.setAttribute('x',x); t.setAttribute('y',y);
++      t.setAttribute('text-anchor',anchor);
++      t.setAttribute('font-family','GDS Transport, Arial, sans-serif');
++      t.setAttribute('font-size','16');
++      t.setAttribute('font-weight',weight);
++      t.textContent = txt; return t;
++    };
++    const placeChips = (items, rMin, rMax) => {
++      if (!items.length) return;
++      const start = -Math.PI/2, end = start + 2*Math.PI;
++      const step = (end - start) / Math.max(items.length,1);
++      items.forEach((txt,i) => {
++        const angle = start + i*step;
++        const r = rMin + ((rMax - rMin) * ((i % 3)/3));
++        const x = 350 + Math.cos(angle) * (rMax - 20);
++        const y = 350 + Math.sin(angle) * (rMax - 20);
++        const t = textAt(x,y,txt,'middle'); t.setAttribute('class','coc-chip');
++        svg.appendChild(t);
++        const bbox = t.getBBox(); svg.removeChild(t);
++        const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
++        bg.setAttribute('x',bbox.x-8); bg.setAttribute('y',bbox.y-6);
++        bg.setAttribute('width',bbox.width+16); bg.setAttribute('height',bbox.height+12);
++        bg.setAttribute('rx',6); bg.setAttribute('ry',6);
++        bg.setAttribute('fill','#ffffff'); bg.setAttribute('stroke','#b1b4b6');
++        svg.appendChild(bg);
++        svg.appendChild(textAt(x,y,txt,'middle'));
++      });
++    };
++
++    // rings
++    svg.appendChild(circle(350,350,340,'#f3f2f1','#b1b4b6')); // outer
++    svg.appendChild(circle(350,350,320,'#fff4bf','#b1b4b6')); // influence
++    svg.appendChild(circle(350,350,220,'#d6f5d6','#b1b4b6')); // control
++
++    svg.appendChild(textAt(350,345,'I CONTROL','middle','bold'));
++    svg.appendChild(textAt(350,475,'I CAN INFLUENCE','middle','bold'));
++    svg.appendChild(textAt(350,40,'OUTSIDE MY CONTROL','middle','bold'));
++
++    placeChips(control, 0, 190);
++    placeChips(influence, 230, 300);
++    placeChips(none, 330, 340);
++    return svg;
++  }
++
++  render();
++}

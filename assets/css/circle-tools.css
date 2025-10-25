@@ -1,10 +1,10 @@
-/* Layout */
+/* Layout helpers */
 .coc-container { max-width: 980px; margin: 0 auto; }
 .coc-card { background: #fff; padding: 24px; border: 1px solid #b1b4b6; margin-bottom: 16px; }
 .coc-row { display: grid; gap: 12px; }
 .coc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* List */
+/* Lists */
 .coc-list li { margin-bottom: 8px; }
 
 /* SVG circle */
@@ -12,15 +12,15 @@
 .coc-svg { width: 100%; max-width: 560px; height: auto; }
 .coc-chip { font-size: 14px; }
 
+/* Sticky action bar (optional) */
+.coc-sticky { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: #fff; border-top: 1px solid #b1b4b6; margin-top: 16px; }
+
+/* Visually hidden (for live regions) */
+.coc-visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }
+
 /* Print styles for PDF export */
 @media print {
   .govuk-breadcrumbs, .govuk-header, .govuk-footer, .coc-no-print { display: none !important; }
   .coc-container { max-width: none; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-
-/* Sticky action bar */
-.coc-sticky { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: #fff; border-top: 1px solid #b1b4b6; margin-top: 16px; }
-
-/* Visually hidden for live region */
-.coc-visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }
