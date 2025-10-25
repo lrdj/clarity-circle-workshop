@@ -11,6 +11,10 @@
 	{%- endif -%}
     <link rel="stylesheet" href="{{ site.baseurl }}/assets/govuk/govuk-frontend.fixed.css">
     <link rel="stylesheet" href="{{ site.baseurl }}/assets/main.css">
+    <script>
+      // Expose optional LLM endpoint to the browser (no secrets here)
+      window.COC_LLM_ENDPOINT = "{{ site.llm_endpoint | default: '' }}";
+    </script>
 
 	
 </head>

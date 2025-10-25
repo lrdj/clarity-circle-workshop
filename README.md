@@ -31,6 +31,45 @@ Deploy on GitHub Pages by pushing to `main`. The `github-pages` gem handles the 
 - JS initialisation: `_includes/govuk-scripts.html` loads `assets/govuk-prototype-kit/init.js` as a module. That file imports GOV.UK Frontend and calls `initAll()` so components with `data-module="govuk-*"` Just Work.
 - Base URL: `_config.yml` sets `baseurl: "/circle"`. All asset links use `{{ site.baseurl }}` so the site works under a subpath on Pages.
 
+### Optional: LLM Assist
+
+The Circle of Control tool supports optional AI assistance for:
+- Rephrasing situations into single-idea statements
+- Suggesting possible causes
+
+How it’s wired:
+- Client code lives in `assets/js/llm-adapter.js` and never stores secrets.
+- You configure a serverless proxy endpoint (with your API key in its environment), and set the URL in `_config.yml`:
+
+```
+llm_endpoint: "https://your-proxy.example.com/api/llm"
+```
+
+- The browser will POST `{ op: 'rephrase'|'causes', text: '<string>' }` to that endpoint. The function should return JSON `{ suggestions: string[] }`.
+- If `llm_endpoint` is blank, the UI still works with safe, local mock suggestions.
+
+Security note: Do not embed API keys in the client or repo. Keep keys in your serverless provider’s env vars and implement CORS on your endpoint.
+
+#### Quick setup (serverless proxy)
+
+Choose one of these and deploy alongside your domain:
+
+- Vercel: copy `docs/serverless/vercel/api/llm.js` to your Vercel project under `api/llm.js`.
+  - Set env vars: `OPENAI_API_KEY`, optional `CORS_ALLOW_ORIGIN`.
+  - Your endpoint will be `https://your-vercel-app.vercel.app/api/llm`.
+
+- Netlify: copy `docs/serverless/netlify/functions/llm.js` to your Netlify project under `netlify/functions/llm.js`.
+  - Set env vars: `OPENAI_API_KEY`, optional `CORS_ALLOW_ORIGIN`.
+  - Endpoint: `https://your-site.netlify.app/.netlify/functions/llm`.
+
+Then configure this site in `_config.yml`:
+
+```
+llm_endpoint: "https://<your-endpoint>"
+```
+
+The tool will switch from local mock suggestions to real suggestions automatically.
+
 
 ## Project Structure
 

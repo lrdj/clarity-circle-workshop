@@ -7,3 +7,6 @@ _site/
 vendor/
 # Mac specific ignores
 .DS_Store
+
+# Local secrets (never commit)
+.env

@@ -37,6 +37,9 @@ sass:
   style: compressed
   load_paths:
     - assets/govuk
+
+# Optional: LLM assist endpoint (serverless proxy). Leave blank to disable in UI.
+llm_endpoint: ""
     
 # Exclude from processing.
 # The following items will not be processed, by default.

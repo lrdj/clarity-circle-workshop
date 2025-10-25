@@ -1,3 +1,5 @@
+import { llm } from './llm-adapter.js'
+
 /* Circle of Control – single page app (no backend)
    Works in your Jekyll GOV.UK prototype kit.
    Flow (aligned to design brief):
@@ -100,7 +102,11 @@ function stepCapture() {
         h('button', {
           class: 'govuk-button govuk-button--secondary',
           onClick: () => { state.issues = state.issues.filter(x => x.id !== s.id); if (state.issues.length === 0) state.issues.push({ id: uid(), text: '' }); announce('Removed a situation'); render(); }
-        }, 'Remove')
+        }, 'Remove'),
+        h('button', {
+          class: 'govuk-button govuk-button--secondary',
+          onClick: () => rephraseSituationUI(s)
+        }, 'Rephrase')
       ])
     ]);
     list.appendChild(wrap);
@@ -143,6 +149,10 @@ function stepCauses() {
     whyTa.value = s.whyBelief || '';
     grp.appendChild(h('label', { class: 'govuk-label', for: `why-${s.id}` }, 'Why we think this is true (optional)'));
     grp.appendChild(whyTa);
+
+    grp.appendChild(h('div', { class: 'coc-actions' }, [
+      h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => suggestCausesUI(s) }, 'Suggest causes')
+    ]));
 
     card.appendChild(grp);
   });
@@ -475,4 +485,55 @@ function startAutosave() {
 function announce(msg) {
   const live = document.getElementById('coc-live');
   if (live) { live.textContent = msg; }
+}
+
+// UI helpers for LLM actions -------------------------------------------------
+async function rephraseSituationUI(situation) {
+  try {
+    const suggestions = await llm.rephraseSituation(situation.text || '');
+    showChooser('Rephrase suggestions', suggestions, choice => {
+      situation.text = choice; saveDraft(); render();
+    });
+  } catch (e) {
+    alert('Could not get rephrase suggestions.');
+    // eslint-disable-next-line no-console
+    console.error(e);
+  }
+}
+
+async function suggestCausesUI(situation) {
+  try {
+    const suggestions = await llm.suggestCauses(situation.text || '');
+    if (!suggestions.length) { alert('No suggestions available.'); return; }
+    const bullets = suggestions.map(s => `• ${s}`).join('\n');
+    const sep = situation.causesText && !situation.causesText.endsWith('\n') ? '\n' : '';
+    situation.causesText = (situation.causesText || '') + sep + bullets + '\n';
+    saveDraft(); render();
+  } catch (e) {
+    alert('Could not get cause suggestions.');
+    // eslint-disable-next-line no-console
+    console.error(e);
+  }
+}
+
+function showChooser(title, options, onPick) {
+  const chooser = document.createElement('div');
+  chooser.setAttribute('class', 'coc-card');
+  chooser.style.position = 'fixed';
+  chooser.style.bottom = '16px';
+  chooser.style.right = '16px';
+  chooser.style.maxWidth = '420px';
+  chooser.style.zIndex = '1000';
+  chooser.appendChild(h('h3', { class: 'govuk-heading-s' }, title));
+  const list = h('ul', { class: 'govuk-list govuk-list--bullet' });
+  options.forEach(opt => {
+    const li = h('li', {} , [
+      h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => { onPick(opt); document.body.removeChild(chooser); } }, opt)
+    ]);
+    list.appendChild(li);
+  });
+  chooser.appendChild(list);
+  const close = h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => document.body.removeChild(chooser) }, 'Close');
+  chooser.appendChild(close);
+  document.body.appendChild(chooser);
 }
