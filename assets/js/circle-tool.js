@@ -7,13 +7,20 @@ if (appEl) {
   const state = { issues: [], causes: {}, agency: {}, step: 1 };
   const uid = () => Math.random().toString(36).slice(2, 9);
 
-  // Tiny hyperscript helper
+  // Tiny hyperscript helper with robust event binding
   const h = (tag, attrs = {}, children = []) => {
     const el = document.createElement(tag);
     Object.entries(attrs).forEach(([k, v]) => {
-      if (k === 'class') el.className = v;
-      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
-      else el.setAttribute(k, v);
+      if (k === 'class') {
+        el.className = v;
+      } else if (k === 'text') {
+        el.textContent = v;
+      } else if (k.startsWith('on')) {
+        // ensure event names are lowercase (e.g., 'onClick' -> 'click')
+        el.addEventListener(k.slice(2).toLowerCase(), v);
+      } else {
+        el.setAttribute(k, v);
+      }
     });
     (Array.isArray(children) ? children : [children]).forEach(c => {
       if (c == null) return;
@@ -39,20 +46,26 @@ if (appEl) {
       h('h2', { class: 'govuk-heading-m' }, '1) What’s not working? (one per line)'),
       h('p', { class: 'govuk-body' }, 'Say it aloud, you type. Keep one idea per line.'),
     ]);
+
     const ta = h('textarea', { class: 'govuk-textarea', rows: '6', id: 'issues' });
     ta.value = state.issues.map(i => i.text).join('\n');
     card.appendChild(ta);
+
     card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
       h('button', {
+        type: 'button',
         class: 'govuk-button',
         onClick: () => {
           const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
           state.issues = lines.map(text => ({ id: uid(), text }));
+          // init per-issue cause arrays
           state.issues.forEach(i => { if (!state.causes[i.id]) state.causes[i.id] = []; });
-          state.step = 2; render();
+          state.step = 2;
+          render();
         }
       }, 'Continue')
     ]));
+
     return card;
   }
 
@@ -62,17 +75,22 @@ if (appEl) {
       h('h2', { class: 'govuk-heading-m' }, '2) Why is that happening?'),
       h('p', { class: 'govuk-body' }, 'Add possible causes. Use “Add deeper cause” to ask “why” again.'),
     ]);
+
     state.issues.forEach(issue => {
       card.appendChild(h('h3', { class: 'govuk-heading-s' }, `Issue: ${issue.text}`));
-      const input = h('input', { class: 'govuk-input', placeholder: 'Because…' });
+
+      const input = h('input', { class: 'govuk-input', placeholder: 'Because…', 'aria-label': `Because (cause) for: ${issue.text}` });
       const addBtn = h('button', {
+        type: 'button',
         class: 'govuk-button govuk-button--secondary coc-no-print',
         onClick: () => {
           const text = input.value.trim(); if (!text) return;
           state.causes[issue.id].push({ id: uid(), text, parentId: null });
-          input.value = ''; render();
+          input.value = '';
+          render();
         }
       }, 'Add cause');
+
       card.appendChild(h('div', { class: 'coc-actions' }, [input, addBtn]));
 
       const ul = h('ul', { class: 'coc-list govuk-list govuk-list--bullet' });
@@ -81,9 +99,15 @@ if (appEl) {
         .forEach(node => ul.appendChild(renderNode(issue.id, node)));
       card.appendChild(ul);
     });
+
     card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
-      h('button', { class: 'govuk-button', onClick: () => { state.step = 3; render(); } }, 'Continue to agency')
+      h('button', {
+        type: 'button',
+        class: 'govuk-button',
+        onClick: () => { state.step = 3; render(); }
+      }, 'Continue to agency')
     ]));
+
     return card;
   }
 
@@ -91,18 +115,27 @@ if (appEl) {
     const li = h('li', {}, [
       h('span', {}, node.text),
       h('div', { class: 'coc-actions coc-no-print' }, [
-        h('input', { class: 'govuk-input', placeholder: 'Deeper cause…', id: `deep-${node.id}` }),
+        h('input', {
+          class: 'govuk-input',
+          placeholder: 'Deeper cause…',
+          id: `deep-${node.id}`,
+          'aria-label': `Deeper cause for: ${node.text}`
+        }),
         h('button', {
+          type: 'button',
           class: 'govuk-button govuk-button--secondary',
           onClick: () => {
             const input = document.getElementById(`deep-${node.id}`);
             const text = input.value.trim(); if (!text) return;
             state.causes[issueId].push({ id: uid(), text, parentId: node.id });
-            input.value=''; render();
+            input.value = '';
+            render();
           }
         }, 'Add deeper cause')
       ])
     ]);
+
+    // children
     (state.causes[issueId] || [])
       .filter(n => n.parentId === node.id)
       .forEach(child => {
@@ -110,6 +143,7 @@ if (appEl) {
         sub.appendChild(renderNode(issueId, child));
         li.appendChild(sub);
       });
+
     return li;
   }
 
@@ -122,6 +156,7 @@ if (appEl) {
       ...state.issues.map(i => ({ id: i.id, text: i.text })),
       ...Object.values(state.causes).flatMap(arr => arr.map(n => ({ id: n.id, text: n.text })))
     ];
+
     nodes.forEach(n => {
       const fs = h('fieldset', { class: 'govuk-fieldset', style: 'margin-bottom:8px;' }, [
         h('legend', { class: 'govuk-fieldset__legend govuk-fieldset__legend--s' }, n.text),
@@ -131,16 +166,25 @@ if (appEl) {
       ]);
       card.appendChild(fs);
     });
+
     card.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
-      h('button', { class: 'govuk-button', onClick: () => { state.step = 4; render(); } }, 'Review & export')
+      h('button', {
+        type: 'button',
+        class: 'govuk-button',
+        onClick: () => { state.step = 4; render(); }
+      }, 'Review & export')
     ]));
+
     return card;
   }
 
   function radio(nodeId, value, label) {
     const name = `agency-${nodeId}`;
     const input = h('input', {
-      class: 'govuk-radios__input', type: 'radio', name, id: `${name}-${value}`,
+      class: 'govuk-radios__input',
+      type: 'radio',
+      name,
+      id: `${name}-${value}`,
       checked: (state.agency[nodeId] || '') === value ? true : null,
       onChange: () => { state.agency[nodeId] = value; }
     });
@@ -153,23 +197,28 @@ if (appEl) {
   // Step 4 — review + SVG circle + print
   function step4() {
     const wrap = h('div');
+
     wrap.appendChild(h('div', { class: 'coc-card' }, [
       h('h2', { class: 'govuk-heading-m' }, '4) Summary & export'),
       h('p', { class: 'govuk-body' }, 'Check items are in the right circle, then export to PDF.'),
     ]));
+
     wrap.appendChild(h('div', { class: 'coc-card coc-circle-wrap' }, [
       h('h3', { class: 'govuk-heading-s' }, 'Circle of control'),
       renderSVG()
     ]));
+
     wrap.appendChild(h('div', { class: 'coc-actions coc-no-print' }, [
-      h('button', { class: 'govuk-button', onClick: () => window.print() }, 'Export to PDF'),
-      h('button', { class: 'govuk-button govuk-button--secondary', onClick: () => { state.step = 3; render(); } }, 'Back')
+      h('button', { type: 'button', class: 'govuk-button', onClick: () => window.print() }, 'Export to PDF'),
+      h('button', { type: 'button', class: 'govuk-button govuk-button--secondary', onClick: () => { state.step = 3; render(); } }, 'Back')
     ]));
+
     return wrap;
   }
 
   function renderSVG() {
     const entries = Object.entries(state.agency);
+
     const getText = (id) => {
       const issue = state.issues.find(i => i.id === id);
       if (issue) return issue.text;
@@ -179,61 +228,74 @@ if (appEl) {
       }
       return '';
     };
-    const control = entries.filter(([,v]) => v==='control').map(([id]) => getText(id));
-    const influence = entries.filter(([,v]) => v==='influence').map(([id]) => getText(id));
-    const none = entries.filter(([,v]) => v==='none').map(([id]) => getText(id));
+
+    const control = entries.filter(([, v]) => v === 'control').map(([id]) => getText(id));
+    const influence = entries.filter(([, v]) => v === 'influence').map(([id]) => getText(id));
+    const none = entries.filter(([, v]) => v === 'none').map(([id]) => getText(id));
 
     const svg = h('svg', { class: 'coc-svg', viewBox: '0 0 700 700', xmlns: 'http://www.w3.org/2000/svg' });
-    const circle = (cx,cy,r,fill,stroke) => {
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r);
-      c.setAttribute('fill',fill); c.setAttribute('stroke',stroke); return c;
+
+    const circle = (cx, cy, r, fill, stroke) => {
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+      c.setAttribute('fill', fill); c.setAttribute('stroke', stroke);
+      return c;
     };
-    const textAt = (x,y,txt,anchor='start',weight='normal') => {
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x',x); t.setAttribute('y',y);
-      t.setAttribute('text-anchor',anchor);
-      t.setAttribute('font-family','GDS Transport, Arial, sans-serif');
-      t.setAttribute('font-size','16');
-      t.setAttribute('font-weight',weight);
-      t.textContent = txt; return t;
+
+    const textAt = (x, y, txt, anchor = 'start', weight = 'normal') => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x); t.setAttribute('y', y);
+      t.setAttribute('text-anchor', anchor);
+      t.setAttribute('font-family', 'GDS Transport, Arial, sans-serif');
+      t.setAttribute('font-size', '16');
+      t.setAttribute('font-weight', weight);
+      t.textContent = txt;
+      return t;
     };
+
     const placeChips = (items, rMin, rMax) => {
       if (!items.length) return;
-      const start = -Math.PI/2, end = start + 2*Math.PI;
-      const step = (end - start) / Math.max(items.length,1);
-      items.forEach((txt,i) => {
-        const angle = start + i*step;
-        const r = rMin + ((rMax - rMin) * ((i % 3)/3)); // simple staggering
+      const start = -Math.PI / 2, end = start + 2 * Math.PI;
+      const step = (end - start) / Math.max(items.length, 1);
+      items.forEach((txt, i) => {
+        const angle = start + i * step;
+        const r = rMin + ((rMax - rMin) * ((i % 3) / 3)); // simple staggering
         const x = 350 + Math.cos(angle) * (rMax - 20);
         const y = 350 + Math.sin(angle) * (rMax - 20);
-        const t = textAt(x,y,txt,'middle'); t.setAttribute('class','coc-chip');
+
+        // measure text to draw a background bubble
+        const t = textAt(x, y, txt, 'middle'); t.setAttribute('class', 'coc-chip');
         svg.appendChild(t);
         const bbox = t.getBBox(); svg.removeChild(t);
-        const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        bg.setAttribute('x',bbox.x-8); bg.setAttribute('y',bbox.y-6);
-        bg.setAttribute('width',bbox.width+16); bg.setAttribute('height',bbox.height+12);
-        bg.setAttribute('rx',6); bg.setAttribute('ry',6);
-        bg.setAttribute('fill','#ffffff'); bg.setAttribute('stroke','#b1b4b6');
+
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('x', bbox.x - 8); bg.setAttribute('y', bbox.y - 6);
+        bg.setAttribute('width', bbox.width + 16); bg.setAttribute('height', bbox.height + 12);
+        bg.setAttribute('rx', 6); bg.setAttribute('ry', 6);
+        bg.setAttribute('fill', '#ffffff'); bg.setAttribute('stroke', '#b1b4b6');
+
         svg.appendChild(bg);
-        svg.appendChild(textAt(x,y,txt,'middle'));
+        svg.appendChild(textAt(x, y, txt, 'middle'));
       });
     };
 
-    // rings
-    svg.appendChild(circle(350,350,340,'#f3f2f1','#b1b4b6')); // outer
-    svg.appendChild(circle(350,350,320,'#fff4bf','#b1b4b6')); // influence
-    svg.appendChild(circle(350,350,220,'#d6f5d6','#b1b4b6')); // control
+    // Rings
+    svg.appendChild(circle(350, 350, 340, '#f3f2f1', '#b1b4b6')); // outer
+    svg.appendChild(circle(350, 350, 320, '#fff4bf', '#b1b4b6')); // influence
+    svg.appendChild(circle(350, 350, 220, '#d6f5d6', '#b1b4b6')); // control
 
-    svg.appendChild(textAt(350,345,'I CONTROL','middle','bold'));
-    svg.appendChild(textAt(350,475,'I CAN INFLUENCE','middle','bold'));
-    svg.appendChild(textAt(350,40,'OUTSIDE MY CONTROL','middle','bold'));
+    svg.appendChild(textAt(350, 345, 'I CONTROL', 'middle', 'bold'));
+    svg.appendChild(textAt(350, 475, 'I CAN INFLUENCE', 'middle', 'bold'));
+    svg.appendChild(textAt(350, 40, 'OUTSIDE MY CONTROL', 'middle', 'bold'));
 
+    // Chip placement
     placeChips(control, 0, 190);
     placeChips(influence, 230, 300);
     placeChips(none, 330, 340);
+
     return svg;
   }
 
+  // initial render
   render();
 }
